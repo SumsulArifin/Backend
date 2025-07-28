@@ -1,27 +1,49 @@
 /* eslint-disable no-console */
-import { Server } from "http";
+import { createServer, Server } from "http";
 import mongoose from "mongoose";
 import app from "./app";
 import { envVars } from "./app/config/env";
 import { connectRedis } from "./app/config/redis.config";
 import { seedSuperAdmin } from "./app/utils/seedSuperAdmin";
 
-let server: Server;
-
-
+// let server: Server;
+let server=createServer(app)
 const startServer = async () => {
     try {
-        await mongoose.connect(envVars.DB_URL)
+        await mongoose.connect(envVars.DB_URL, {
+            serverSelectionTimeoutMS: 10000, // Wait 10s before timeout
+        });
 
-        console.log("Connected to DB!!");
+        mongoose.connection.on("connected", () => {
+            console.log("✅ Connected to MongoDB");
+        });
+
+        mongoose.connection.on("error", (err) => {
+            console.error("❌ MongoDB connection error:", err);
+        });
 
         server = app.listen(envVars.PORT, () => {
-            console.log(`Server is listening to port ${envVars.PORT}`);
+            console.log(`🚀 Server is running on port ${envVars.PORT}`);
         });
     } catch (error) {
-        console.log(error);
+        console.error("❌ Initial DB connection failed:", error);
     }
-}
+};
+
+
+// const startServer = async () => {
+//     try {
+//         await mongoose.connect(envVars.DB_URL)
+
+//         console.log("Connected to DB!!");
+
+//         server = app.listen(envVars.PORT, () => {
+//             console.log(`Server is listening to port ${envVars.PORT}`);
+//         });
+//     } catch (error) {
+//         console.log(error);
+//     }
+// }
 
 (async () => {
     await connectRedis()
